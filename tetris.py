@@ -183,23 +183,23 @@ def drawBoard(Field):
 				print(Field[ii*WIDTH + jj])
 	print("##########")
 
-def drawField(characterToDraw):
-	global Field
+def drawField(Field, characterToDraw):
 	for yy in range(4):
 		for xx in range(4):
 			# Update field value by drawing the shape based on xPosition and yPosition
 			if (shapeList[currentPiece][xx + shapeWidth*yy + (rotationIndex % 4)*16] == 'B'):
 				Field = Field[:(xPosition + WIDTH*yPosition + xx + WIDTH*yy)] + characterToDraw + Field[(xPosition + WIDTH*yPosition + xx + WIDTH*yy + 1):]
+	return Field
 				
 
-def eraseCurrentPiece():
-	global Field
+def eraseCurrentPiece(Field):
 	for yy in range(4):
 		for xx in range(4):
 			currentShapePositionIndex = xPosition + WIDTH*yPosition + xx + WIDTH*yy
 			# Replace the 'B' with '.' in the Field if condition is met
 			if Field[currentShapePositionIndex] == 'B':
 				Field = Field[:(currentShapePositionIndex)] + '.' + Field[(currentShapePositionIndex + 1):]
+	return Field
 
 
 def canMoveHorizontally(movementDirection):
@@ -223,9 +223,7 @@ def canMoveDown():
 				return False
 	return downMovementPossible
 
-def handleLineClearing():
-	global Field
-	global score
+def handleLineClearing(Field, score):
 
 	# Going from top to bottom, check if each line is full. If full, then clear line and drop lines above.
 	for currentLineCheck in range(1,14,1):
@@ -249,11 +247,12 @@ def handleLineClearing():
 				currentIndex = xx + 1
 				Field = Field[:(currentIndex)] + '.' + Field[(currentIndex + 1):]
 
+	return Field, score
 
 
 
-def checkGameOver():
-	global gameStillGoing
+
+def checkGameOver(gameStillGoing):
 	# Check if the starting xPosition and yPosition are filled with 'X'
 	for yy in range(4):
 		for xx in range(4):
@@ -262,8 +261,9 @@ def checkGameOver():
 			if shapeList[currentPiece][shapeIndex] == 'B' and Field[fieldIndex] == 'X':
 				gameStillGoing = False
 
-def handleRotation():
-	global rotationIndex
+	return gameStillGoing
+
+def handleRotation(Field, rotationIndex):
 	# Check if rotation is possible
 	rotationPossible = True
 	for yy in range(4):
@@ -273,12 +273,14 @@ def handleRotation():
 				rotationPossible = False
 	# Rotate is rotation is possible
 	if rotationPossible:
-		eraseCurrentPiece()
+		Field = eraseCurrentPiece(Field)
 		rotationIndex = (rotationIndex + 1)%4
-		drawField('B')
+		Field = drawField(Field,'B')
+
+	return Field, rotationIndex
 
 # Draw field before game begins
-drawField('B')
+Field = drawField(Field, 'B')
 #Game loop
 while(gameStillGoing):
 	####### Timing #######
@@ -292,36 +294,36 @@ while(gameStillGoing):
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_LEFT:
 				if canMoveHorizontally(-1):
-					eraseCurrentPiece()
+					Field = eraseCurrentPiece(Field)
 					xPosition = xPosition - 1
-					drawField('B')
+					Field = drawField(Field,'B')
 			if event.key == pygame.K_RIGHT:
 				if canMoveHorizontally(1):
-					eraseCurrentPiece()
+					Field = eraseCurrentPiece(Field)
 					xPosition = xPosition + 1
-					drawField('B')
+					Field = drawField(Field,'B')
 			if event.key == pygame.K_UP:
-				handleRotation()
+				Field, rotationIndex = handleRotation(Field, rotationIndex)
 
 	####### Game logic #######	
 	# If piece can move down, then erase current shape and edit yPosition and draw shape again
 	if canMoveDown():
-		eraseCurrentPiece()
+		Field = eraseCurrentPiece(Field)
 		yPosition = yPosition + 1
-		drawField('B')
+		Field = drawField(Field,'B')
 	# If piece can't move down, then check if line can be cleared replace the 'B' with 'X', set xPosition to 5,
 	# yPosition to 0, rotationIndex to 0 and currentPiece to a new random integer
 	else:
-		eraseCurrentPiece()
-		drawField('X')
-		handleLineClearing()
+		Field = eraseCurrentPiece(Field)
+		Field = drawField(Field, 'X')
+		Field, score = handleLineClearing(Field, score)
 
 		xPosition = 4
 		yPosition = 0
 		rotationIndex = 0
 		currentPiece = random.randint(0,6)
 
-		checkGameOver()
+		gameStillGoing =  checkGameOver(gameStillGoing)
 
 
 	####### Draw to screen #######
